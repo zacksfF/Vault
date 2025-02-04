@@ -1,66 +1,92 @@
-## Foundry
+# Vault: A Decentralized Stablecoin Protocol  
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+Vault is a **decentralized, overcollateralized stablecoin protocol** built on **Ethereum**. It allows users to deposit **WETH (Wrapped Ether) and WBTC (Wrapped Bitcoin)** as collateral to mint a **USD-pegged stablecoin**, ensuring a secure and trustless financial ecosystem.  
 
-Foundry consists of:
+## 🚀 Features  
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+- **🔹 Overcollateralized Stability** – Users must provide more collateral than they mint, ensuring the stablecoin remains fully backed.  
+- **🔹 Decentralized & Trustless** – Governed by smart contracts, eliminating intermediaries.  
+- **🔹 Efficient Liquidations** – Automatic liquidation mechanisms prevent undercollateralization.  
+- **🔹 Seamless Redemption** – Burn stablecoins anytime to reclaim WETH/WBTC collateral.  
+- **🔹 Gas-Optimized & Scalable** – Built with Solidity and Foundry for efficient execution.  
+- **🔹 On-Chain Transparency** – All transactions and collateral ratios are verifiable on-chain.  
 
-## Documentation
+## 📜 How It Works  
 
-https://book.getfoundry.sh/
+1. **Deposit Collateral** – Users deposit WETH/WBTC into Vault.  
+2. **Mint Stablecoins** – Based on the collateral ratio, users mint USD-pegged stablecoins.  
+3. **Maintain Collateralization** – Users must keep their collateral above the minimum threshold.  
+4. **Redemption & Liquidation** – If collateral falls below the required level, liquidations occur.  
+
+
+
+
+
+
+
+# Getting Started
+### Clone the Repository  
+```sh
+git clone https://github.com/zacksfF/Vault.git  
+cd Vault
+forge build 
+```
 
 ## Usage
-
-### Build
-
-```shell
-$ forge build
+----
+### **Run Local Node**  
+```sh
+make anvil
 ```
 
-### Test
-
-```shell
-$ forge test
+### **Deploy**  
+```sh
+make deploy
 ```
 
-### Format
-
-```shell
-$ forge fmt
+### **Deploy to Sepolia**  
+Set up **.env** variables, then:  
+```sh
+make deploy ARGS="--network sepolia"
 ```
 
-### Gas Snapshots
-
-```shell
-$ forge snapshot
+## **🧪 Testing**  
+```sh
+forge test       # Run tests  
+forge coverage   # Generate coverage report  
+forge snapshot   # Estimate gas costs  
 ```
 
-### Anvil
+## **🔧 Scripts**  
 
-```shell
-$ anvil
+### **Interact with Contracts (Sepolia Example)**  
+
+1. **Get WETH**  
+```sh
+cast send <WETH_CONTRACT> "deposit()" --value 0.1ether --rpc-url $SEPOLIA_RPC_URL --private-key $PRIVATE_KEY
 ```
 
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+2. **Approve WETH**  
+```sh
+cast send <WETH_CONTRACT> "approve(address,uint256)" <VAULT_CONTRACT> 1ether --rpc-url $SEPOLIA_RPC_URL --private-key $PRIVATE_KEY
 ```
 
-### Cast
-
-```shell
-$ cast <subcommand>
+3. **Deposit & Mint Stablecoin**  
+```sh
+cast send <VAULT_CONTRACT> "depositCollateralAndMintDsc(address,uint256,uint256)" <WETH_CONTRACT> 0.1ether 0.01ether --rpc-url $SEPOLIA_RPC_URL --private-key $PRIVATE_KEY
 ```
 
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
+## **📌 Formatting & Linting**  
+```sh
+forge fmt      # Format code  
+slither .      # Run security analysis  
 ```
+
+## **📄 Additional Commands**  
+```sh
+make clean      # Clean project  
+make build      # Compile contracts  
+make update     # Update dependencies  
+```
+
+# Auditing in progress
