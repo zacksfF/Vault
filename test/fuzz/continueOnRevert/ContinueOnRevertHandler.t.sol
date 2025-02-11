@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import { EnumerableSet } from "lib/openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
 import { Test } from "forge-std/Test.sol";
 import { ERC20Mock } from "../../mocks/ERC20Mock.sol";
 import { MockV3Aggregator } from "../../mocks/MockV3Aggregator.sol";
