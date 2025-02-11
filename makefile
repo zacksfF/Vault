@@ -2,7 +2,7 @@
 
 .PHONY: all test clean deploy fund help install snapshot format anvil 
 
-DEFAULT_ANVIL_KEY := 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+DEFAULT_ANVIL_KEY := 0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a
 
 help:
 	@echo "Usage:"
@@ -45,3 +45,6 @@ deploy:
 	@forge script script/DeployDSC.s.sol:DeployDSC $(NETWORK_ARGS)
 
 
+# Fund the contract
+fund:
+	@forge script script/FundDSC.s.sol:FundDSC $(NETWORK_ARGS) --value 1000000000000000000
