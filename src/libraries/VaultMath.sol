@@ -33,10 +33,10 @@ library VaultMath{
     {
         if (totalStablecoinMinted == 0) return type(uint256).max;
         
-        uint256 collateralAdjustedForThreshold = 
+        uint256 healthFactor = 
             (collateralValueInUsd * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION;
         
-        return (collateralAdjustedForThreshold * PRECISION) / totalStablecoinMinted;
+        return healthFactor;
     }
 
     /**
