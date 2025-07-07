@@ -314,7 +314,7 @@ contract VaultEngine is ReentrancyGuard, IVaultEngine {
 
     function _healthFactor(address user) private view returns (uint256) {
         (uint256 totalStablecoinMinted, uint256 collateralValueInUsd) = _getAccountInformation(user);
-        return VaultMath.calculateHealthFactor(totalStablecoinMinted, collateralValueInUsd);
+        return VaultMath.calculateHealthFactor(collateralValueInUsd, totalStablecoinMinted);
     }
 
     function _getTokenPrice(address token) private view returns (uint256) {
