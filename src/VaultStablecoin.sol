@@ -15,6 +15,10 @@ import "./libraries/VaultErrors.sol";
  *      Only the VaultEngine contract can mint and burn tokens.
  */
 contract VaultStablecoin is ERC20Burnable, Ownable, IVaultStablecoin {
+    uint256 public constant MAX_DAILY_MINT = 1000000e18; // 1M vUSD daily limit
+    uint256 public lastMintTimestamp;
+    uint256 public dailyMintAmount;
+
     /**
      * @notice Initializes the Vault Stablecoin
      * @param initialOwner Address that will own this contract (should be VaultEngine)
@@ -42,6 +46,20 @@ contract VaultStablecoin is ERC20Burnable, Ownable, IVaultStablecoin {
         if (amount == 0) {
             revert VaultErrors.Vault__ZeroAmount();
         }
+
+        // Reset daily counter if needed
+        if (block.timestamp > lastMintTimestamp + 1 days) {
+            dailyMintAmount = 0;
+            lastMintTimestamp = block.timestamp;
+        }
+
+        // Check daily mint limit
+        require(dailyMintAmount + amount <= MAX_DAILY_MINT, "Daily mint limit exceeded");
+        dailyMintAmount += amount;
+
+        // Check total supply growth rate
+        uint256 currentSupply = totalSupply();
+        require(amount <= currentSupply / 100, "Cannot mint more than 1% of supply at once");
         
         _mint(to, amount);
         return true;
