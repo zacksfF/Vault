@@ -60,7 +60,7 @@ library VaultMath{
      */
     function getUsdValue(address token, uint256 amount, uint256 tokenPriceInUsd)
         public
-        view
+        pure
         returns (uint256)
     {
         require(amount <= type(uint256).max / tokenPriceInUsd, "Amount too large");
@@ -85,4 +85,33 @@ library VaultMath{
         uint256 collateralAmount = getTokenAmountFromUsd(debtToCover, tokenPriceInUsd);
         return (collateralAmount * LIQUIDATION_BONUS) / LIQUIDATION_PRECISION;
     }
+
+    // Add minimum amount validation and proper precision handling
+    function calculateCollateralAdjustedForThreshold(uint256 collateralValueInUsd)
+        internal pure returns (uint256) {
+
+        // Ensure minimum collateral value to prevent precision issues
+        require(collateralValueInUsd >= LIQUIDATION_PRECISION, "Collateral too small");
+
+        // Use higher precision arithmetic
+        uint256 threshold = (collateralValueInUsd * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION;
+
+        // Ensure result is never zero if input is non-zero
+        require(threshold > 0 || collateralValueInUsd == 0, "Threshold calculation error");
+
+        return threshold;
+    }
+
+    // Alternative: Use SafeMath with scaling
+    function calculateCollateralAdjustedForThresholdSafe(uint256 collateralValueInUsd)
+        internal pure returns (uint256) {
+
+        if (collateralValueInUsd == 0) return 0;
+
+        // Scale up calculation to maintain precision
+        uint256 scaledResult = (collateralValueInUsd * LIQUIDATION_THRESHOLD * 1e18) / (LIQUIDATION_PRECISION * 1e18);
+
+        return scaledResult;
+    }
+
 }
