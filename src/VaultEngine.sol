@@ -100,6 +100,7 @@ contract VaultEngine is ReentrancyGuard, IVaultEngine {
      * @param amountCollateral Amount of collateral to deposit
      * @param amountStablecoinToMint Amount of stablecoins to mint
      */
+    
     function depositCollateralAndMintStablecoin(
         address tokenCollateralAddress,
         uint256 amountCollateral,
@@ -131,6 +132,7 @@ contract VaultEngine is ReentrancyGuard, IVaultEngine {
         emit CollateralDeposited(msg.sender, tokenCollateralAddress, amountCollateral);
         emit StablecoinMinted(msg.sender, amountStablecoinToMint);
     }
+
 
     /**
      * @notice Redeems collateral and burns stablecoins in one transaction
@@ -316,7 +318,7 @@ contract VaultEngine is ReentrancyGuard, IVaultEngine {
 
     function _getUsdValue(address token, uint256 amount) private view returns (uint256) {
         uint256 price = _getTokenPrice(token);
-        return VaultMath.getUsdValue(amount, price);
+        return VaultMath.getUsdValue(amount, tokenPriceInUsd);
     }
 
     function _revertIfHealthFactorIsBroken(address user) internal view {
@@ -340,13 +342,21 @@ contract VaultEngine is ReentrancyGuard, IVaultEngine {
         return _getAccountInformation(user);
     }
 
-    function getCollateralValue(address user) public view returns (uint256 totalCollateralValueInUsd) {
-        for (uint256 i = 0; i < s_collateralTokens.length; i++) {
+    function getCollateralValue(address user, uint256 startIndex, uint256 maxTokens) public view returns (uint256 totalValue, uint256 nextIndex) {
+        uint256 endIndex = startIndex + maxTokens;
+        if (endIndex > s_collateralTokens.length) {
+            endIndex = s_collateralTokens.length;
+        }
+
+        for (uint256 i = startIndex; i < endIndex; i++) {
             address token = s_collateralTokens[i];
             uint256 amount = s_collateralDeposited[user][token];
-            totalCollateralValueInUsd += _getUsdValue(token, amount);
+            if (amount > 0) {  // Skip zero balances
+                totalValue += _getUsdValue(token, amount);
+            }
         }
-        return totalCollateralValueInUsd;
+
+        nextIndex = endIndex < s_collateralTokens.length ? endIndex : 0;
     }
 
     function getTokenAmountFromUsd(address token, uint256 usdAmountInWei) external view returns (uint256) {
