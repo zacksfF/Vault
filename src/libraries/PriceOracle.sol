@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "lib/chainlink-brownie-contracts/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 import "./VaultErrors.sol";
+import "./VaultMath.sol";
 
 /**
  * @title PriceOracle
@@ -12,41 +13,29 @@ import "./VaultErrors.sol";
  */
 library PriceOracle {
     uint256 private constant TIMEOUT = 3 hours;
+    uint256 constant STALE_BLOCK_THRESHOLD = 240; // ~1 hour at 15s blocks
+    
 
     /**
      * @notice Gets the latest price data with staleness validation
      * @param priceFeed Chainlink price feed interface
-     * @return roundId The round ID
-     * @return price The asset price
-     * @return startedAt Timestamp when the round started
-     * @return updatedAt Timestamp when the round was last updated
-     * @return answeredInRound The round ID of the round in which the answer was computed
+     * @return price The latest asset price with additional feed precision
      */
-    function getLatestPrice(AggregatorV3Interface priceFeed)
-        internal
-        view
-        returns (uint80 roundId, int256 price, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
-    {
-        (roundId, price, startedAt, updatedAt, answeredInRound) = priceFeed.latestRoundData();
+    function getLatestPrice(AggregatorV3Interface priceFeed) internal view returns (uint256) {
+        (uint80 roundId, int256 price, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound) = priceFeed.latestRoundData();
+        require(price > 0, "Invalid price");
+        require(answeredInRound >= roundId, "Stale price");
 
-        // Check for stale price data
-        if (updatedAt == 0 || answeredInRound < roundId) {
-            revert VaultErrors.Vault__StalePrice();
-        }
-
-        // Check if price is too old
+        // Use both timestamp AND block-based staleness checks
         uint256 secondsSinceUpdate = block.timestamp - updatedAt;
-        if (secondsSinceUpdate > TIMEOUT) {
-            revert VaultErrors.Vault__StalePrice();
-        }
+        require(secondsSinceUpdate <= TIMEOUT, "Price too stale (time)");
 
-        // Validate price is positive
-        if (price <= 0) {
-            revert VaultErrors.Vault__InvalidPriceData();
-        }
+        // Additional block-based check for extra security
+        require(block.number - updatedAt <= STALE_BLOCK_THRESHOLD, "Price too stale (blocks)");
 
-        return (roundId, price, startedAt, updatedAt, answeredInRound);
+        return uint256(price) * VaultMath.ADDITIONAL_FEED_PRECISION;
     }
+
 
     /**
      * @notice Gets only the price from the latest round data
@@ -54,8 +43,7 @@ library PriceOracle {
      * @return price The latest price
      */
     function getPrice(AggregatorV3Interface priceFeed) internal view returns (uint256 price) {
-        (, int256 rawPrice,,,) = getLatestPrice(priceFeed);
-        return uint256(rawPrice);
+        return getLatestPrice(priceFeed);
     }
 
     /**
