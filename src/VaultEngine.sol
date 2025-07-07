@@ -72,7 +72,7 @@ contract VaultEngine is ReentrancyGuard, IVaultEngine {
         address[] memory tokenAddresses,
         address[] memory priceFeedAddresses,
         address vaultStablecoinAddress
-    ) {
+    ) payable {
         if (tokenAddresses.length != priceFeedAddresses.length) {
             revert VaultErrors.Vault__CollateralAddressesAndPriceFeedsMismatch();
         }
