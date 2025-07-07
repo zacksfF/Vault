@@ -32,6 +32,9 @@ contract VaultEngine is ReentrancyGuard, IVaultEngine {
     using PriceOracle for AggregatorV3Interface;
     using VaultMath for uint256;
 
+    uint256 constant MAX_SUPPORTED_TOKENS = 50; // Reasonable limit
+
+
     // State Variables
     VaultStablecoin private immutable i_vaultStablecoin;
     
@@ -72,7 +75,7 @@ contract VaultEngine is ReentrancyGuard, IVaultEngine {
         address[] memory tokenAddresses,
         address[] memory priceFeedAddresses,
         address vaultStablecoinAddress
-    ) payable {
+    ) {
         if (tokenAddresses.length != priceFeedAddresses.length) {
             revert VaultErrors.Vault__CollateralAddressesAndPriceFeedsMismatch();
         }
@@ -80,8 +83,9 @@ contract VaultEngine is ReentrancyGuard, IVaultEngine {
             revert VaultErrors.Vault__ZeroAddress();
         }
 
+        uint256 length = tokenAddresses.length; // Cache length
         // Initialize supported tokens and price feeds
-        for (uint256 i = 0; i < tokenAddresses.length; i++) {
+        for (uint256 i = 0; i < length;) {
             if (tokenAddresses[i] == address(0) || priceFeedAddresses[i] == address(0)) {
                 revert VaultErrors.Vault__ZeroAddress();
             }
@@ -264,6 +268,8 @@ contract VaultEngine is ReentrancyGuard, IVaultEngine {
         _burnStablecoin(amountStablecoinToBurn, msg.sender, msg.sender);
         _revertIfHealthFactorIsBroken(msg.sender); // This should never hit
     }
+
+
 
     // Private Functions
 
