@@ -104,9 +104,32 @@ contract VaultEngine is ReentrancyGuard, IVaultEngine {
         address tokenCollateralAddress,
         uint256 amountCollateral,
         uint256 amountStablecoinToMint
-    ) external {
-        depositCollateral(tokenCollateralAddress, amountCollateral);
-        mintStablecoin(amountStablecoinToMint);
+    ) external nonReentrant {  
+        if (amountCollateral == 0 || amountStablecoinToMint == 0) {
+            revert VaultErrors.Vault__ZeroAmount();
+        }
+        if (s_priceFeeds[tokenCollateralAddress] == address(0)) {
+            revert VaultErrors.Vault__TokenNotSupported();
+        }
+
+        // Update state before external calls (CEI pattern)
+        s_collateralDeposited[msg.sender][tokenCollateralAddress] += amountCollateral;
+        s_stablecoinMinted[msg.sender] += amountStablecoinToMint;
+
+        // Validate health factor
+        _revertIfHealthFactorIsBroken(msg.sender);
+
+        // External calls last
+        bool collateralSuccess = IERC20(tokenCollateralAddress).transferFrom(
+            msg.sender, address(this), amountCollateral
+        );
+        require(collateralSuccess, "Collateral transfer failed");
+
+        bool mintSuccess = i_vaultStablecoin.mint(msg.sender, amountStablecoinToMint);
+        require(mintSuccess, "Mint failed");
+
+        emit CollateralDeposited(msg.sender, tokenCollateralAddress, amountCollateral);
+        emit StablecoinMinted(msg.sender, amountStablecoinToMint);
     }
 
     /**
