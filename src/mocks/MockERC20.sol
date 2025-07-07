@@ -31,8 +31,8 @@ contract MockERC20 is ERC20 {
         _mint(account, amount);
     }
 
-    function burn(address account, uint256 amount) external {
-        _burn(account, amount);
+    function burn(uint256 amount) external {
+        _burn(msg.sender, amount);
     }
 
     function faucet(uint256 amount) external {
