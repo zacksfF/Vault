@@ -32,6 +32,9 @@ contract VaultEngine is ReentrancyGuard, IVaultEngine {
     using PriceOracle for AggregatorV3Interface;
     using VaultMath for uint256;
 
+    uint256 constant MAX_SUPPORTED_TOKENS = 50; // Reasonable limit
+
+
     // State Variables
     VaultStablecoin private immutable i_vaultStablecoin;
     
@@ -80,8 +83,9 @@ contract VaultEngine is ReentrancyGuard, IVaultEngine {
             revert VaultErrors.Vault__ZeroAddress();
         }
 
+        uint256 length = tokenAddresses.length; // Cache length
         // Initialize supported tokens and price feeds
-        for (uint256 i = 0; i < tokenAddresses.length; i++) {
+        for (uint256 i = 0; i < length;) {
             if (tokenAddresses[i] == address(0) || priceFeedAddresses[i] == address(0)) {
                 revert VaultErrors.Vault__ZeroAddress();
             }
@@ -100,14 +104,39 @@ contract VaultEngine is ReentrancyGuard, IVaultEngine {
      * @param amountCollateral Amount of collateral to deposit
      * @param amountStablecoinToMint Amount of stablecoins to mint
      */
+    
     function depositCollateralAndMintStablecoin(
         address tokenCollateralAddress,
         uint256 amountCollateral,
         uint256 amountStablecoinToMint
-    ) external {
-        depositCollateral(tokenCollateralAddress, amountCollateral);
-        mintStablecoin(amountStablecoinToMint);
+    ) external nonReentrant {  
+        if (amountCollateral == 0 || amountStablecoinToMint == 0) {
+            revert VaultErrors.Vault__ZeroAmount();
+        }
+        if (s_priceFeeds[tokenCollateralAddress] == address(0)) {
+            revert VaultErrors.Vault__TokenNotSupported();
+        }
+
+        // Update state before external calls (CEI pattern)
+        s_collateralDeposited[msg.sender][tokenCollateralAddress] += amountCollateral;
+        s_stablecoinMinted[msg.sender] += amountStablecoinToMint;
+
+        // Validate health factor
+        _revertIfHealthFactorIsBroken(msg.sender);
+
+        // External calls last
+        bool collateralSuccess = IERC20(tokenCollateralAddress).transferFrom(
+            msg.sender, address(this), amountCollateral
+        );
+        require(collateralSuccess, "Collateral transfer failed");
+
+        bool mintSuccess = i_vaultStablecoin.mint(msg.sender, amountStablecoinToMint);
+        require(mintSuccess, "Mint failed");
+
+        emit CollateralDeposited(msg.sender, tokenCollateralAddress, amountCollateral);
+        emit StablecoinMinted(msg.sender, amountStablecoinToMint);
     }
+
 
     /**
      * @notice Redeems collateral and burns stablecoins in one transaction
@@ -240,6 +269,8 @@ contract VaultEngine is ReentrancyGuard, IVaultEngine {
         _revertIfHealthFactorIsBroken(msg.sender); // This should never hit
     }
 
+
+
     // Private Functions
 
     function _redeemCollateral(
@@ -260,10 +291,11 @@ contract VaultEngine is ReentrancyGuard, IVaultEngine {
     function _burnStablecoin(uint256 amountStablecoinToBurn, address onBehalfOf, address stablecoinFrom) private {
         s_stablecoinMinted[onBehalfOf] -= amountStablecoinToBurn;
         
-        bool success = i_vaultStablecoin.transferFrom(stablecoinFrom, address(this), amountStablecoinToBurn);
-        if (!success) {
-            revert VaultErrors.Vault__TransferFailed();
-        }
+        bool success = i_vaultStablecoin.transferFrom(onBehalfOf, address(this), amountStablecoinToBurn);
+        // if (!success) {
+        //     revert VaultErrors.Vault__TransferFailed();
+        // } 
+        require(success, "Transfer failed");
         
         i_vaultStablecoin.burn(amountStablecoinToBurn);
         emit StablecoinBurned(onBehalfOf, amountStablecoinToBurn);
@@ -282,7 +314,7 @@ contract VaultEngine is ReentrancyGuard, IVaultEngine {
 
     function _healthFactor(address user) private view returns (uint256) {
         (uint256 totalStablecoinMinted, uint256 collateralValueInUsd) = _getAccountInformation(user);
-        return VaultMath.calculateHealthFactor(totalStablecoinMinted, collateralValueInUsd);
+        return VaultMath.calculateHealthFactor(collateralValueInUsd, totalStablecoinMinted);
     }
 
     function _getTokenPrice(address token) private view returns (uint256) {
@@ -292,7 +324,7 @@ contract VaultEngine is ReentrancyGuard, IVaultEngine {
 
     function _getUsdValue(address token, uint256 amount) private view returns (uint256) {
         uint256 price = _getTokenPrice(token);
-        return VaultMath.getUsdValue(amount, price);
+        return VaultMath.getUsdValue(amount, tokenPriceInUsd);
     }
 
     function _revertIfHealthFactorIsBroken(address user) internal view {
@@ -316,13 +348,21 @@ contract VaultEngine is ReentrancyGuard, IVaultEngine {
         return _getAccountInformation(user);
     }
 
-    function getCollateralValue(address user) public view returns (uint256 totalCollateralValueInUsd) {
-        for (uint256 i = 0; i < s_collateralTokens.length; i++) {
+    function getCollateralValue(address user, uint256 startIndex, uint256 maxTokens) public view returns (uint256 totalValue, uint256 nextIndex) {
+        uint256 endIndex = startIndex + maxTokens;
+        if (endIndex > s_collateralTokens.length) {
+            endIndex = s_collateralTokens.length;
+        }
+
+        for (uint256 i = startIndex; i < endIndex; i++) {
             address token = s_collateralTokens[i];
             uint256 amount = s_collateralDeposited[user][token];
-            totalCollateralValueInUsd += _getUsdValue(token, amount);
+            if (amount > 0) {  // Skip zero balances
+                totalValue += _getUsdValue(token, amount);
+            }
         }
-        return totalCollateralValueInUsd;
+
+        nextIndex = endIndex < s_collateralTokens.length ? endIndex : 0;
     }
 
     function getTokenAmountFromUsd(address token, uint256 usdAmountInWei) external view returns (uint256) {

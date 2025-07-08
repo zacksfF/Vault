@@ -33,10 +33,10 @@ library VaultMath{
     {
         if (totalStablecoinMinted == 0) return type(uint256).max;
         
-        uint256 collateralAdjustedForThreshold = 
+        uint256 healthFactor = 
             (collateralValueInUsd * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION;
         
-        return (collateralAdjustedForThreshold * PRECISION) / totalStablecoinMinted;
+        return healthFactor;
     }
 
     /**
@@ -55,16 +55,20 @@ library VaultMath{
 
     /**
      * @notice Converts token amount to USD value using price feed data
-     * @param tokenAmount Amount of tokens
-     * @param tokenPriceInUsd Token price in USD (8 decimals from Chainlink)
-     * @return usdValue Equivalent USD value
+     * @param amount Amount of tokens
+     * @param token Token price in USD (8 decimals from Chainlink)
      */
-    function getUsdValue(uint256 tokenAmount, uint256 tokenPriceInUsd)
-        internal
+    function getUsdValue(address token, uint256 amount, uint256 tokenPriceInUsd)
+        public
         pure
-        returns (uint256 usdValue)
+        returns (uint256)
     {
-        return (tokenAmount * tokenPriceInUsd * ADDITIONAL_FEED_PRECISION) / PRECISION;
+        require(amount <= type(uint256).max / tokenPriceInUsd, "Amount too large");
+        require(tokenPriceInUsd <= type(uint256).max / ADDITIONAL_FEED_PRECISION, "Price too large");
+        // Safe calculation with overflow protection
+        uint256 intermediateResult = amount * tokenPriceInUsd;
+        require(intermediateResult <= type(uint256).max / ADDITIONAL_FEED_PRECISION, "Calculation overflow");
+        return (intermediateResult * ADDITIONAL_FEED_PRECISION) / PRECISION;
     }
 
     /**
@@ -81,4 +85,33 @@ library VaultMath{
         uint256 collateralAmount = getTokenAmountFromUsd(debtToCover, tokenPriceInUsd);
         return (collateralAmount * LIQUIDATION_BONUS) / LIQUIDATION_PRECISION;
     }
+
+    // Add minimum amount validation and proper precision handling
+    function calculateCollateralAdjustedForThreshold(uint256 collateralValueInUsd)
+        internal pure returns (uint256) {
+
+        // Ensure minimum collateral value to prevent precision issues
+        require(collateralValueInUsd >= LIQUIDATION_PRECISION, "Collateral too small");
+
+        // Use higher precision arithmetic
+        uint256 threshold = (collateralValueInUsd * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION;
+
+        // Ensure result is never zero if input is non-zero
+        require(threshold > 0 || collateralValueInUsd == 0, "Threshold calculation error");
+
+        return threshold;
+    }
+
+    // Alternative: Use SafeMath with scaling
+    function calculateCollateralAdjustedForThresholdSafe(uint256 collateralValueInUsd)
+        internal pure returns (uint256) {
+
+        if (collateralValueInUsd == 0) return 0;
+
+        // Scale up calculation to maintain precision
+        uint256 scaledResult = (collateralValueInUsd * LIQUIDATION_THRESHOLD * 1e18) / (LIQUIDATION_PRECISION * 1e18);
+
+        return scaledResult;
+    }
+
 }
