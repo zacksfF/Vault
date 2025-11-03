@@ -7,6 +7,9 @@ import {VaultMath} from "src/libraries/VaultMath.sol";
 import {MockPriceFeed} from "src/mocks/MockPriceFeed.sol";
 import "lib/chainlink-brownie-contracts/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
+/// @title PriceOracleTest
+/// @notice Unit tests for the PriceOracle library
+
 contract PriceOracleTest is Test {
 	function testGetLatestPrice_returnsScaledPrice() public {
 		// keep block.number and block.timestamp aligned so both staleness checks pass
@@ -25,7 +28,7 @@ contract PriceOracleTest is Test {
 		vm.roll(1);
 		vm.warp(1);
 		MockPriceFeed mock = new MockPriceFeed(8, int256(1e8));
-		// set the latest answer to zero
+        // set the latest answer to zero
 		mock.updateAnswer(0);
 
 		vm.expectRevert(bytes("Invalid price"));
