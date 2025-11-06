@@ -10,43 +10,64 @@ pragma solidity ^0.8.20;
 contract MockPriceFeed {
     uint256 public constant version = 4;
     uint8 public decimals;
-    int256 public latestAnswer;
-    uint256 public latestTimestamp;
-    uint256 public latestRound;
-
-    mapping(uint256 => int256) public getAnswer;
-    mapping(uint256 => uint256) public getTimestamp;
-    mapping(uint256 => uint256) private getStartedAt;
+    
+    uint80 private latestRound;
+    mapping(uint80 => int256) private answers;
+    mapping(uint80 => uint256) private timestamps;
+    mapping(uint80 => uint256) private startedAts;
+    mapping(uint80 => uint80) private roundAnsweredIds; // Which round answered this round
 
     constructor(uint8 _decimals, int256 _initialAnswer) {
         decimals = _decimals;
-        updateAnswer(_initialAnswer);
+        // Initialize first round with valid data
+        _initializeRound(1, _initialAnswer, block.timestamp, block.timestamp, 1);
+    }
+    
+    function _initializeRound(
+        uint80 roundId,
+        int256 answer,
+        uint256 timestamp,
+        uint256 startedAt,
+        uint80 answeredInRound
+    ) internal {
+        latestRound = roundId;
+        answers[roundId] = answer;
+        timestamps[roundId] = timestamp;
+        startedAts[roundId] = startedAt;
+        roundAnsweredIds[roundId] = answeredInRound;
     }
 
-    function updateAnswer(int256 _answer) public {
-        latestAnswer = _answer;
-        latestTimestamp = block.timestamp;
-        latestRound++;
-        getAnswer[latestRound] = _answer;
-        getTimestamp[latestRound] = block.timestamp;
-        getStartedAt[latestRound] = block.timestamp;
+    // Helper for tests to simulate specific scenarios
+    function setRoundData(
+        uint80 roundId,
+        int256 answer,
+        uint256 timestamp,
+        uint256 startedAt,
+        uint80 answeredInRound
+    ) public {
+        require(roundId > 0, "Invalid round ID");
+        answers[roundId] = answer;
+        timestamps[roundId] = timestamp;
+        startedAts[roundId] = startedAt;
+        roundAnsweredIds[roundId] = answeredInRound;
+        
+        if (roundId >= latestRound) {
+            latestRound = roundId;
+        }
     }
 
-    function updateRoundData(uint80 _roundId, int256 _answer, uint256 _timestamp, uint256 _startedAt) public {
-        latestRound = _roundId;
-        latestAnswer = _answer;
-        latestTimestamp = _timestamp;
-        getAnswer[latestRound] = _answer;
-        getTimestamp[latestRound] = _timestamp;
-        getStartedAt[latestRound] = _startedAt;
-    }
-
-    function getRoundData(uint80 _roundId)
+    function getRoundData(uint80 roundId)
         external
         view
-        returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
+        returns (uint80, int256, uint256, uint256, uint80)
     {
-        return (_roundId, getAnswer[_roundId], getStartedAt[_roundId], getTimestamp[_roundId], _roundId);
+        return (
+            roundId,
+            answers[roundId],
+            startedAts[roundId],
+            timestamps[roundId],
+            roundAnsweredIds[roundId]
+        );
     }
 
     function latestRoundData()
@@ -54,13 +75,11 @@ contract MockPriceFeed {
         view
         returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
     {
-        return (
-            uint80(latestRound),
-            getAnswer[latestRound],
-            getStartedAt[latestRound],
-            getTimestamp[latestRound],
-            uint80(latestRound)
-        );
+        roundId = latestRound;
+        answer = answers[roundId];
+        startedAt = startedAts[roundId];
+        updatedAt = timestamps[roundId];
+        answeredInRound = roundAnsweredIds[roundId];
     }
 
     function description() external pure returns (string memory) {
