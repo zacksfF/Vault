@@ -23,16 +23,20 @@ library PriceOracle {
      */
     function getLatestPrice(AggregatorV3Interface priceFeed) internal view returns (uint256) {
         (uint80 roundId, int256 price, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound) = priceFeed.latestRoundData();
-        require(price > 0, "Invalid price");
-        require(answeredInRound >= roundId, "Stale price");
-
-        // Use both timestamp AND block-based staleness checks
-        uint256 secondsSinceUpdate = block.timestamp - updatedAt;
-        require(secondsSinceUpdate <= TIMEOUT, "Price too stale (time)");
-
-        // Additional block-based check for extra security
-        require(block.number - updatedAt <= STALE_BLOCK_THRESHOLD, "Price too stale (blocks)");
-
+        
+        // Validate price data
+        if (price <= 0) revert("Invalid price");
+        if (answeredInRound < roundId) revert("Stale price");
+        
+        // Check timestamp staleness
+        if (block.timestamp < updatedAt) revert("Timestamp in future");
+        uint256 ageInSeconds = block.timestamp - updatedAt;
+        if (ageInSeconds > TIMEOUT) revert("Price too stale (time)");
+        
+        // Optional: Check block-based staleness
+        uint256 blockAge = (block.timestamp - updatedAt) / 15; // Approximate block age
+        if (blockAge > STALE_BLOCK_THRESHOLD) revert("Price too stale (blocks)");
+        
         return uint256(price) * VaultMath.ADDITIONAL_FEED_PRECISION;
     }
 
