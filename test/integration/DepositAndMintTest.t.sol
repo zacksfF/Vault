@@ -40,12 +40,9 @@ contract DepositAndMintTest is Test {
         ethPriceFeed = new MockV3Aggregator(DECIMALS, int256(ETH_PRICE));
         btcPriceFeed = new MockV3Aggregator(DECIMALS, int256(BTC_PRICE));
 
-        // Deploy stablecoin with OWNER
+        // Deploy stablecoin with OWNER and bootstrap supply
         stablecoin = new VaultStablecoin(OWNER);
-        
-        // Note: Skip initial minting to save gas in setUp
-        // Tests will bootstrap supply naturally through operations
-        // The first mint (when supply is 0) is allowed by the contract
+        stablecoin.mint(OWNER, 1000000e18); // Bootstrap with 1M supply
 
         // Deploy engine
         address[] memory tokens = new address[](2);
