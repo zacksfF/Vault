@@ -292,10 +292,7 @@ contract VaultEngine is ReentrancyGuard, IVaultEngine {
     function _burnStablecoin(uint256 amountStablecoinToBurn, address onBehalfOf, address stablecoinFrom) private {
         s_stablecoinMinted[onBehalfOf] -= amountStablecoinToBurn;
         
-        bool success = i_vaultStablecoin.transferFrom(onBehalfOf, address(this), amountStablecoinToBurn);
-        // if (!success) {
-        //     revert VaultErrors.Vault__TransferFailed();
-        // } 
+        bool success = i_vaultStablecoin.transferFrom(stablecoinFrom, address(this), amountStablecoinToBurn);
         require(success, "Transfer failed");
         
         i_vaultStablecoin.burn(amountStablecoinToBurn);
