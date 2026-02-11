@@ -55,20 +55,15 @@ library VaultMath{
 
     /**
      * @notice Converts token amount to USD value using price feed data
-     * @param amount Amount of tokens
-     * @param token Token price in USD (8 decimals from Chainlink)
+     * @param amount Amount of tokens (18 decimals)
+     * @param tokenPriceInUsd Token price in USD (18 decimals, already scaled by PriceOracle)
      */
-    function getUsdValue(address token, uint256 amount, uint256 tokenPriceInUsd)
+    function getUsdValue(address /* token */, uint256 amount, uint256 tokenPriceInUsd)
         public
         pure
         returns (uint256)
     {
-        require(amount <= type(uint256).max / tokenPriceInUsd, "Amount too large");
-        require(tokenPriceInUsd <= type(uint256).max / ADDITIONAL_FEED_PRECISION, "Price too large");
-        // Safe calculation with overflow protection
-        uint256 intermediateResult = amount * tokenPriceInUsd;
-        require(intermediateResult <= type(uint256).max / ADDITIONAL_FEED_PRECISION, "Calculation overflow");
-        return (intermediateResult * ADDITIONAL_FEED_PRECISION) / PRECISION;
+        return (amount * tokenPriceInUsd) / PRECISION;
     }
 
     /**
