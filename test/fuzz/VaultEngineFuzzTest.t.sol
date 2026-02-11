@@ -33,15 +33,17 @@ contract VaultEngineFuzzTest is Test {
         // Deploy mocks
         weth = new MockERC20("Wrapped Ether", "WETH", 18, OWNER, STARTING_BALANCE * 3);
         wbtc = new MockERC20("Wrapped Bitcoin", "WBTC", 18, OWNER, STARTING_BALANCE * 3);
-        
-        ethPriceFeed = new MockV3Aggregator(DECIMALS, int256(ETH_PRICE));
-        btcPriceFeed = new MockV3Aggregator(DECIMALS, int256(BTC_PRICE));
 
         // Deploy stablecoin with OWNER and initialize with base supply
         stablecoin = new VaultStablecoin(OWNER);
         
         // Initialize base supply (stop/restart prank to avoid overlap)
         stablecoin.mint(OWNER, 1000000e18);
+        vm.warp(block.timestamp + 1 days + 1); // Reset daily mint counter
+
+        // Create price feeds AFTER warp so timestamps are fresh
+        ethPriceFeed = new MockV3Aggregator(DECIMALS, int256(ETH_PRICE));
+        btcPriceFeed = new MockV3Aggregator(DECIMALS, int256(BTC_PRICE));
 
         // Deploy engine
         address[] memory tokens = new address[](2);
