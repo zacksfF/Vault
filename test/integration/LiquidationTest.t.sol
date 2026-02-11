@@ -34,11 +34,13 @@ contract LiquidationTest is Test {
         weth = new MockERC20("Wrapped Ether", "WETH", 18, OWNER, STARTING_BALANCE * 10);
         wbtc = new MockERC20("Wrapped Bitcoin", "WBTC", 18, OWNER, STARTING_BALANCE * 10);
 
-        ethPriceFeed = new MockV3Aggregator(DECIMALS, int256(ETH_PRICE));
-        btcPriceFeed = new MockV3Aggregator(DECIMALS, int256(BTC_PRICE));
-
         stablecoin = new VaultStablecoin(OWNER);
         stablecoin.mint(OWNER, 1000000e18); // Bootstrap supply
+        vm.warp(block.timestamp + 1 days + 1); // Reset daily mint counter
+
+        // Create price feeds AFTER warp so timestamps are fresh
+        ethPriceFeed = new MockV3Aggregator(DECIMALS, int256(ETH_PRICE));
+        btcPriceFeed = new MockV3Aggregator(DECIMALS, int256(BTC_PRICE));
 
         address[] memory tokens = new address[](2);
         address[] memory priceFeeds = new address[](2);
