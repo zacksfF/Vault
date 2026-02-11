@@ -29,8 +29,12 @@ contract HealthFactorFuzzTest is Test {
         vm.startPrank(OWNER);
 
         weth = new MockERC20("Wrapped Ether", "WETH", 18, OWNER, STARTING_BALANCE * 10);
-        ethPriceFeed = new MockV3Aggregator(DECIMALS, int256(ETH_PRICE));
         stablecoin = new VaultStablecoin(OWNER);
+        stablecoin.mint(OWNER, 1000000e18); // Bootstrap supply
+        vm.warp(block.timestamp + 1 days + 1); // Reset daily mint counter
+
+        // Create price feed AFTER warp so timestamp is fresh
+        ethPriceFeed = new MockV3Aggregator(DECIMALS, int256(ETH_PRICE));
 
         address[] memory tokens = new address[](1);
         address[] memory priceFeeds = new address[](1);
@@ -50,7 +54,11 @@ contract HealthFactorFuzzTest is Test {
         collateral = bound(collateral, 1 ether, STARTING_BALANCE);
         uint256 collateralValueUsd = (collateral * ETH_PRICE * ADDITIONAL_FEED_PRECISION) / PRECISION;
         // At 200% ratio, max mint = collateralValue * 50 / 100
-        uint256 maxMint = (collateralValueUsd * 50) / 100;
+        uint256 maxMintHF = (collateralValueUsd * 50) / 100;
+        // Also bounded by 1% of total supply
+        uint256 maxMintSupply = stablecoin.totalSupply() / 100;
+        uint256 maxMint = maxMintHF < maxMintSupply ? maxMintHF : maxMintSupply;
+        vm.assume(maxMint >= 1e18);
         mintAmount = bound(mintAmount, 1e18, maxMint);
 
         vm.startPrank(USER);
@@ -96,7 +104,10 @@ contract HealthFactorFuzzTest is Test {
         additionalCollateral = bound(additionalCollateral, 1 ether, STARTING_BALANCE / 2);
 
         uint256 collateralValueUsd = (initialCollateral * ETH_PRICE * ADDITIONAL_FEED_PRECISION) / PRECISION;
-        uint256 maxMint = (collateralValueUsd * 50) / 100;
+        uint256 maxMintHF = (collateralValueUsd * 50) / 100;
+        uint256 maxMintSupply = stablecoin.totalSupply() / 100;
+        uint256 maxMint = maxMintHF < maxMintSupply ? maxMintHF : maxMintSupply;
+        vm.assume(maxMint >= 1e18);
         mintAmount = bound(mintAmount, 1e18, maxMint);
 
         vm.startPrank(USER);
@@ -121,8 +132,11 @@ contract HealthFactorFuzzTest is Test {
     ) public {
         collateral = bound(collateral, 2 ether, STARTING_BALANCE);
         uint256 collateralValueUsd = (collateral * ETH_PRICE * ADDITIONAL_FEED_PRECISION) / PRECISION;
-        uint256 maxMint = (collateralValueUsd * 50) / 100;
-        mintAmount = bound(mintAmount, 2e18, maxMint);
+        uint256 maxMintHF2 = (collateralValueUsd * 50) / 100;
+        uint256 maxMintSupply2 = stablecoin.totalSupply() / 100;
+        uint256 maxMint2 = maxMintHF2 < maxMintSupply2 ? maxMintHF2 : maxMintSupply2;
+        vm.assume(maxMint2 >= 2e18);
+        mintAmount = bound(mintAmount, 2e18, maxMint2);
         burnAmount = bound(burnAmount, 1e18, mintAmount - 1e18);
 
         vm.startPrank(USER);
