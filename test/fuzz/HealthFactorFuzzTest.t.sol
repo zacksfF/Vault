@@ -8,8 +8,6 @@ import "../../src/mocks/MockERC20.sol";
 import "../../src/libraries/VaultMath.sol";
 import "lib/chainlink-brownie-contracts/contracts/src/v0.8/tests/MockV3Aggregator.sol";
 
-
-
 contract HealthFactorFuzzTest is Test {
     VaultEngine engine;
     VaultStablecoin stablecoin;
