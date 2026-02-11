@@ -36,13 +36,15 @@ contract DepositAndMintTest is Test {
         // Deploy mocks
         weth = new MockERC20("Wrapped Ether", "WETH", 18, OWNER, STARTING_BALANCE * 10);
         wbtc = new MockERC20("Wrapped Bitcoin", "WBTC", 18, OWNER, STARTING_BALANCE * 10);
-        
-        ethPriceFeed = new MockV3Aggregator(DECIMALS, int256(ETH_PRICE));
-        btcPriceFeed = new MockV3Aggregator(DECIMALS, int256(BTC_PRICE));
 
         // Deploy stablecoin with OWNER and bootstrap supply
         stablecoin = new VaultStablecoin(OWNER);
         stablecoin.mint(OWNER, 1000000e18); // Bootstrap with 1M supply
+        vm.warp(block.timestamp + 1 days + 1); // Reset daily mint counter
+
+        // Create price feeds AFTER warp so timestamps are fresh
+        ethPriceFeed = new MockV3Aggregator(DECIMALS, int256(ETH_PRICE));
+        btcPriceFeed = new MockV3Aggregator(DECIMALS, int256(BTC_PRICE));
 
         // Deploy engine
         address[] memory tokens = new address[](2);
