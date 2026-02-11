@@ -28,7 +28,7 @@ contract PriceOracleTest is Test {
 		vm.roll(1);
 		vm.warp(1);
 		MockPriceFeed mock = new MockPriceFeed(8, int256(1e8));
-        // set the latest answer to zero
+		// updateAnswer increments the round and sets the new answer
 		mock.updateAnswer(0);
 
 		vm.expectRevert(bytes("Invalid price"));
@@ -36,29 +36,31 @@ contract PriceOracleTest is Test {
 	}
 
 	function testRevertsOnStaleTime() public {
-		// normal block/ts
 		vm.roll(1);
 		vm.warp(100000);
 
 		MockPriceFeed mock = new MockPriceFeed(8, int256(2000e8));
 
-		// set the round's updatedAt to older than timeout (3 hours)
+		// Set the latest round's updatedAt to older than timeout (3 hours)
 		uint256 old = block.timestamp - (3 hours + 1);
-		// use a new round id
-		mock.updateRoundData(2, int256(2000e8), old, old);
+		// Use setRoundData on the current round (1) to make it stale
+		mock.setRoundData(1, int256(2000e8), old, old, 1);
 
 		vm.expectRevert(bytes("Price too stale (time)"));
 		PriceOracle.getLatestPrice(AggregatorV3Interface(address(mock)));
 	}
 
 	function testRevertsOnStaleBlocks() public {
-		// Make block.number large while keeping timestamp small so block-based check fails
+		// Need updatedAt to be old enough that (block.timestamp - updatedAt) / 15 > 240
+		// That means gap > 3600 seconds. Set timestamp far ahead of the mock's updatedAt.
 		vm.roll(10000);
-		vm.warp(1000);
+		vm.warp(10000);
 
 		MockPriceFeed mock = new MockPriceFeed(8, int256(2000e8));
+		// Mock was created at warp(10000). Set updatedAt to 5000 (gap=5000, blockAge=333 > 240)
+		// Keep it within 3 hours so time-based check passes.
+		mock.setRoundData(1, int256(2000e8), 5000, 5000, 1);
 
-		// time-based check passes (updatedAt == block.timestamp), but block check should fail
 		vm.expectRevert(bytes("Price too stale (blocks)"));
 		PriceOracle.getLatestPrice(AggregatorV3Interface(address(mock)));
 	}
