@@ -26,17 +26,17 @@ library VaultMath{
      * @return healthFactor The calculated health factor
      */
 
-    function calculateHealthFactor(uint256 totalStablecoinMinted, uint256 collateralValueInUsd)
+    function calculateHealthFactor(uint256 collateralValueInUsd, uint256 totalStablecoinMinted)
         internal
         pure
         returns (uint256 healthFactor)
     {
         if (totalStablecoinMinted == 0) return type(uint256).max;
         
-        uint256 healthFactor = 
+        uint256 collateralAdjustedForThreshold = 
             (collateralValueInUsd * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION;
         
-        return healthFactor;
+        return (collateralAdjustedForThreshold * PRECISION) / totalStablecoinMinted;
     }
 
     /**
