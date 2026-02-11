@@ -85,4 +85,15 @@ contract MockPriceFeed {
     function description() external pure returns (string memory) {
         return "v0.8/Mock";
     }
+
+    /// @notice Update the answer for the current round (convenience for tests)
+    function updateAnswer(int256 _answer) external {
+        latestRound++;
+        _initializeRound(latestRound, _answer, block.timestamp, block.timestamp, latestRound);
+    }
+
+    /// @notice Update a specific round with custom data (for staleness tests)
+    function updateRoundData(uint80 _roundId, int256 _answer, uint256 _updatedAt, uint256 _startedAt) external {
+        _initializeRound(_roundId, _answer, _updatedAt, _startedAt, _roundId);
+    }
 }
