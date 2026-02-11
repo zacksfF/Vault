@@ -5,6 +5,7 @@ import "forge-std/Script.sol";
 import "../src/VaultEngine.sol";
 import "../src/VaultStablecoin.sol";
 import "./HelperConfig.s.sol";
+import "../src/mocks/MockERC20.sol";
 
 /**
  * @title DeployVault
