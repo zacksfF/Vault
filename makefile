@@ -8,7 +8,7 @@ DEFAULT_ANVIL_KEY := 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf
 ANVIL_USER := 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 
 help: ## Show this help message
-	@echo "🏦 Vault Protocol Development Commands"
+	@echo " Vault Protocol Development Commands"
 	@echo "====================================="
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "%-20s %s\n", $$1, $$2}'
 
@@ -43,11 +43,11 @@ format: ## Format code
 
 # Anvil local blockchain
 anvil: ## Start Anvil local blockchain
-	@echo "🏠 Starting Anvil local blockchain..."
+	@echo " Starting Anvil local blockchain..."
 	@anvil --host 0.0.0.0 --port 8545 --chain-id 31337
 
 anvil-bg: ## Start Anvil in background
-	@echo "🏠 Starting Anvil in background..."
+	@echo " Starting Anvil in background..."
 	@anvil --host 0.0.0.0 --port 8545 --chain-id 31337 > anvil.log 2>&1 &
 	@echo "Anvil PID: $$!"
 
@@ -56,7 +56,7 @@ stop-anvil: ## Stop Anvil
 
 # Local deployment
 deploy-local: ## Deploy to local Anvil
-	@echo "🚀 Deploying to local Anvil..."
+	@echo " Deploying to local Anvil..."
 	@forge script script/DeployVault.s.sol:DeployVault \
 		--rpc-url $(LOCAL_RPC_URL) \
 		--private-key $(ANVIL_PRIVATE_KEY) \
@@ -64,7 +64,7 @@ deploy-local: ## Deploy to local Anvil
 
 # Production deployment  
 deploy-sepolia: ## Deploy to Sepolia testnet
-	@echo "🌐 Deploying to Sepolia..."
+	@echo " Deploying to Sepolia..."
 	@forge script script/DeployVault.s.sol:DeployVault \
 		--rpc-url $(SEPOLIA_RPC_URL) \
 		--private-key $(PRIVATE_KEY) \
@@ -77,11 +77,11 @@ deploy-sepolia: ## Deploy to Sepolia testnet
 setup-local: ## Setup local environment with contracts
 	@echo "🔧 Setting up local environment..."
 	@make deploy-local
-	@echo "✅ Local deployment complete!"
-	@echo "📋 Don't forget to update contract addresses in .env"
+	@echo " Local deployment complete!"
+	@echo " Don't forget to update contract addresses in .env"
 
 status: ## Show current status
-	@echo "🏦 VAULT PROTOCOL STATUS"
+	@echo " VAULT PROTOCOL STATUS"
 	@echo "======================="
 	@echo "Network: Local Anvil"
 	@echo "RPC: $(LOCAL_RPC_URL)"
@@ -92,11 +92,11 @@ status: ## Show current status
 		echo "WETH: $(WETH)"; \
 		echo "WBTC: $(WBTC)"; \
 	else \
-		echo "⚠️  Contract addresses not set in .env"; \
+		echo " Contract addresses not set in .env"; \
 	fi
 
 check-balance: ## Check ETH balance
-	@echo "💰 ETH Balance: $$(cast balance $(ANVIL_USER) --rpc-url $(LOCAL_RPC_URL) | head -c 10) wei"
+	@echo " ETH Balance: $$(cast balance $(ANVIL_USER) --rpc-url $(LOCAL_RPC_URL) | head -c 10) wei"
 
 # Testing shortcuts
 test-basic: ## Run basic user journey test
