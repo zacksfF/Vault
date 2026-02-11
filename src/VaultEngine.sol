@@ -91,6 +91,7 @@ contract VaultEngine is ReentrancyGuard, IVaultEngine {
             }
             s_priceFeeds[tokenAddresses[i]] = priceFeedAddresses[i];
             s_collateralTokens.push(tokenAddresses[i]);
+            unchecked { ++i; }
         }
 
         i_vaultStablecoin = VaultStablecoin(vaultStablecoinAddress);
@@ -324,7 +325,7 @@ contract VaultEngine is ReentrancyGuard, IVaultEngine {
 
     function _getUsdValue(address token, uint256 amount) private view returns (uint256) {
         uint256 price = _getTokenPrice(token);
-        return VaultMath.getUsdValue(amount, tokenPriceInUsd);
+        return VaultMath.getUsdValue(token, amount, price);
     }
 
     function _revertIfHealthFactorIsBroken(address user) internal view {
@@ -348,7 +349,19 @@ contract VaultEngine is ReentrancyGuard, IVaultEngine {
         return _getAccountInformation(user);
     }
 
-    function getCollateralValue(address user, uint256 startIndex, uint256 maxTokens) public view returns (uint256 totalValue, uint256 nextIndex) {
+    function getCollateralValue(address user) public view returns (uint256 totalValue) {
+        uint256 length = s_collateralTokens.length;
+        for (uint256 i = 0; i < length;) {
+            address token = s_collateralTokens[i];
+            uint256 amount = s_collateralDeposited[user][token];
+            if (amount > 0) {
+                totalValue += _getUsdValue(token, amount);
+            }
+            unchecked { ++i; }
+        }
+    }
+
+    function getCollateralValuePaginated(address user, uint256 startIndex, uint256 maxTokens) public view returns (uint256 totalValue, uint256 nextIndex) {
         uint256 endIndex = startIndex + maxTokens;
         if (endIndex > s_collateralTokens.length) {
             endIndex = s_collateralTokens.length;
@@ -357,7 +370,7 @@ contract VaultEngine is ReentrancyGuard, IVaultEngine {
         for (uint256 i = startIndex; i < endIndex; i++) {
             address token = s_collateralTokens[i];
             uint256 amount = s_collateralDeposited[user][token];
-            if (amount > 0) {  // Skip zero balances
+            if (amount > 0) {
                 totalValue += _getUsdValue(token, amount);
             }
         }
