@@ -57,9 +57,11 @@ contract VaultStablecoin is ERC20Burnable, Ownable, IVaultStablecoin {
         require(dailyMintAmount + amount <= MAX_DAILY_MINT, "Daily mint limit exceeded");
         dailyMintAmount += amount;
 
-        // Check total supply growth rate
+        // Check total supply growth rate (skip for bootstrap when supply is 0)
         uint256 currentSupply = totalSupply();
-        require(amount <= currentSupply / 100, "Cannot mint more than 1% of supply at once");
+        if (currentSupply > 0) {
+            require(amount <= currentSupply / 100, "Cannot mint more than 1% of supply at once");
+        }
         
         _mint(to, amount);
         return true;
