@@ -40,9 +40,8 @@ contract VaultEngineFuzzTest is Test {
         // Deploy stablecoin with OWNER and initialize with base supply
         stablecoin = new VaultStablecoin(OWNER);
         
-        // Initialize base supply
-        vm.prank(OWNER);
-        stablecoin.mint(OWNER, 1000000e18); // Initialize with 1M supply
+        // Initialize base supply (stop/restart prank to avoid overlap)
+        stablecoin.mint(OWNER, 1000000e18);
 
         // Deploy engine
         address[] memory tokens = new address[](2);
