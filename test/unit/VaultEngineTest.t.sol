@@ -35,6 +35,7 @@ contract VaultEngineTest is Test {
         btcPriceFeed = new MockV3Aggregator(DECIMALS, int256(BTC_PRICE));
 
         stablecoin = new VaultStablecoin(OWNER);
+        stablecoin.mint(OWNER, 1000000e18); // Bootstrap supply
 
         address[] memory tokens = new address[](2);
         address[] memory priceFeeds = new address[](2);
@@ -184,6 +185,8 @@ contract VaultEngineTest is Test {
     function test_MintRevertsWhenExceedingCollateralRatio() public {
         uint256 collateral = 10 ether;
         // $20k collateral → max $10k mint. Try $10001
+        // But also limited by 1% of supply = 10000e18
+        // So mint exactly at threshold (10000e18) succeeds but 10001e18 breaks health factor
         uint256 tooMuch = 10001e18;
 
         vm.startPrank(USER);
